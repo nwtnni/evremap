@@ -1,7 +1,7 @@
 use anyhow::{bail, Context, Result};
 use evdev_rs::{Device, DeviceWrapper};
 use std::cmp::Ordering;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 #[derive(Debug, Clone)]
 pub struct DeviceInfo {
@@ -99,7 +99,7 @@ impl DeviceInfo {
     }
 }
 
-fn event_number_from_path(path: &PathBuf) -> u32 {
+fn event_number_from_path(path: &Path) -> u32 {
     match path.to_str() {
         Some(s) => match s.rfind("event") {
             Some(idx) => s[idx + 5..].parse().unwrap_or(0),

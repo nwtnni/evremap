@@ -53,9 +53,9 @@ struct KeyCodeWrapper {
     pub code: KeyCode,
 }
 
-impl Into<KeyCode> for KeyCodeWrapper {
-    fn into(self) -> KeyCode {
-        self.code
+impl From<KeyCodeWrapper> for KeyCode {
+    fn from(wrapper: KeyCodeWrapper) -> Self {
+        wrapper.code
     }
 }
 
@@ -87,12 +87,12 @@ struct DualRoleConfig {
     tap: Vec<KeyCodeWrapper>,
 }
 
-impl Into<Mapping> for DualRoleConfig {
-    fn into(self) -> Mapping {
+impl From<DualRoleConfig> for Mapping {
+    fn from(config: DualRoleConfig) -> Self {
         Mapping::DualRole {
-            input: self.input.into(),
-            hold: self.hold.into_iter().map(Into::into).collect(),
-            tap: self.tap.into_iter().map(Into::into).collect(),
+            input: config.input.into(),
+            hold: config.hold.into_iter().map(Into::into).collect(),
+            tap: config.tap.into_iter().map(Into::into).collect(),
         }
     }
 }
@@ -103,11 +103,11 @@ struct RemapConfig {
     output: Vec<KeyCodeWrapper>,
 }
 
-impl Into<Mapping> for RemapConfig {
-    fn into(self) -> Mapping {
+impl From<RemapConfig> for Mapping {
+    fn from(config: RemapConfig) -> Self {
         Mapping::Remap {
-            input: self.input.into_iter().map(Into::into).collect(),
-            output: self.output.into_iter().map(Into::into).collect(),
+            input: config.input.into_iter().map(Into::into).collect(),
+            output: config.output.into_iter().map(Into::into).collect(),
         }
     }
 }
