@@ -2,6 +2,7 @@ use crate::mapping::*;
 use crate::remapper::*;
 use anyhow::{Context, Result};
 use std::path::PathBuf;
+use std::thread;
 use std::time::Duration;
 use structopt::StructOpt;
 
@@ -73,15 +74,22 @@ fn main() -> Result<()> {
             ))?;
 
             log::error!("Short delay: release any keys now!");
-            std::thread::sleep(Duration::new(2, 0));
+            thread::sleep(Duration::new(2, 0));
+            thread::scope(|scope| -> anyhow::Result<_> {
+                for device_info in deviceinfo::DeviceInfo::with_name(
+                    &mapping_config.device_name,
+                    mapping_config.phys.as_deref(),
+                )? {
+                    scope.spawn(|| -> anyhow::Result<_> {
+                        InputMapper::create_mapper(device_info.path, &mapping_config.mappings)?
+                            .run_mapper()
+                    });
+                }
 
-            let device_info = deviceinfo::DeviceInfo::with_name(
-                &mapping_config.device_name,
-                mapping_config.phys.as_deref(),
-            )?;
+                Ok(())
+            })?;
 
-            let mut mapper = InputMapper::create_mapper(device_info.path, mapping_config.mappings)?;
-            mapper.run_mapper()
+            Ok(())
         }
     }
 }

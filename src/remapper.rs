@@ -48,14 +48,14 @@ fn timeval_diff(newer: &TimeVal, older: &TimeVal) -> Duration {
     Duration::from_micros(((secs * MICROS_PER_SECOND) + usecs) as u64)
 }
 
-pub struct InputMapper {
+pub struct InputMapper<'mapping> {
     input: Device,
     output: UInputDevice,
     /// If present in this map, the key is down since the instant
     /// of its associated value
     input_state: HashMap<KeyCode, TimeVal>,
 
-    mappings: Vec<Mapping>,
+    mappings: &'mapping [Mapping],
 
     /// The most recent candidate for a tap function is held here
     tapping: Option<KeyCode>,
@@ -70,15 +70,15 @@ fn enable_key_code(input: &mut Device, key: KeyCode) -> Result<()> {
     Ok(())
 }
 
-impl InputMapper {
-    pub fn create_mapper<P: AsRef<Path>>(path: P, mappings: Vec<Mapping>) -> Result<Self> {
+impl<'mapping> InputMapper<'mapping> {
+    pub fn create_mapper<P: AsRef<Path>>(path: P, mappings: &'mapping [Mapping]) -> Result<Self> {
         let path = path.as_ref();
         let mut input = Device::new_from_path(path).context("failed to make new Device")?;
 
         input.set_name(&format!("evremap Virtual input for {}", path.display()));
 
         // Ensure that any remapped keys are supported by the generated output device
-        for map in &mappings {
+        for map in mappings {
             match map {
                 Mapping::DualRole { tap, hold, .. } => {
                     for t in tap {
@@ -141,7 +141,7 @@ impl InputMapper {
 
         // First phase is to apply any DualRole mappings as they are likely to
         // be used to produce modifiers when held.
-        for map in &self.mappings {
+        for map in self.mappings {
             if let Mapping::DualRole { input, hold, .. } = map {
                 if keys.contains(input) {
                     keys.remove(input);
@@ -155,7 +155,7 @@ impl InputMapper {
         let mut keys_minus_remapped = keys.clone();
 
         // Second pass to apply Remap items
-        for map in &self.mappings {
+        for map in self.mappings {
             if let Mapping::Remap { input, output } = map {
                 if input.is_subset(&keys_minus_remapped) {
                     for i in input {
@@ -212,7 +212,7 @@ impl InputMapper {
     }
 
     fn lookup_dual_role_mapping(&self, code: KeyCode) -> Option<Mapping> {
-        for map in &self.mappings {
+        for map in self.mappings {
             if let Mapping::DualRole { input, .. } = map {
                 if *input == code {
                     // A DualRole mapping has the highest precedence
@@ -227,7 +227,7 @@ impl InputMapper {
     fn lookup_mapping(&self, code: KeyCode) -> Option<Mapping> {
         let mut candidates = vec![];
 
-        for map in &self.mappings {
+        for map in self.mappings {
             match map {
                 Mapping::DualRole { input, .. } => {
                     if *input == code {

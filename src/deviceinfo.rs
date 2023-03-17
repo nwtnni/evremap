@@ -21,12 +21,12 @@ impl DeviceInfo {
         })
     }
 
-    pub fn with_name(name: &str, phys: Option<&str>) -> Result<Self> {
+    pub fn with_name(name: &str, phys: Option<&str>) -> Result<Vec<Self>> {
         let mut devices = Self::obtain_device_list()?;
 
         if let Some(phys) = phys {
             match devices.iter().position(|item| item.phys == phys) {
-                Some(idx) => return Ok(devices.remove(idx)),
+                Some(idx) => return Ok(vec![devices.remove(idx)]),
                 None => {
                     bail!(
                         "Requested device `{}` with phys=`{}` was not found",
@@ -37,7 +37,7 @@ impl DeviceInfo {
             }
         }
 
-        let mut devices_with_name: Vec<_> = devices
+        let devices_with_name: Vec<_> = devices
             .into_iter()
             .filter(|item| item.name == name)
             .collect();
@@ -52,15 +52,15 @@ impl DeviceInfo {
                 log::warn!("{:?}", dev);
             }
             log::warn!(
-                "evremap will use the first entry. If you want to \
-                       use one of the others, add the corresponding phys \
+                "evremap will all matching entries. If you want to \
+                       use exactly one entry, add the corresponding phys \
                        value to your configuration, for example, \
-                       `phys = \"{}\"` for the second entry in the list.",
-                devices_with_name[1].phys
+                       `phys = \"{}\"` for the first entry in the list.",
+                devices_with_name[0].phys
             );
         }
 
-        Ok(devices_with_name.remove(0))
+        Ok(devices_with_name)
     }
 
     fn obtain_device_list() -> Result<Vec<DeviceInfo>> {
