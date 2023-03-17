@@ -1,6 +1,6 @@
 use crate::mapping::*;
 use anyhow::*;
-use evdev_rs::{Device, GrabMode, InputEvent, ReadFlag, TimeVal, UInputDevice};
+use evdev_rs::{Device, DeviceWrapper, GrabMode, InputEvent, ReadFlag, TimeVal, UInputDevice};
 use std::cmp::Ordering;
 use std::collections::{HashMap, HashSet};
 use std::path::Path;
@@ -65,7 +65,7 @@ pub struct InputMapper {
 
 fn enable_key_code(input: &mut Device, key: KeyCode) -> Result<()> {
     input
-        .enable(&EventCode::EV_KEY(key.clone()))
+        .enable_event_code(&EventCode::EV_KEY(key.clone()), None)
         .context(format!("enable key {:?}", key))?;
     Ok(())
 }
@@ -73,11 +73,7 @@ fn enable_key_code(input: &mut Device, key: KeyCode) -> Result<()> {
 impl InputMapper {
     pub fn create_mapper<P: AsRef<Path>>(path: P, mappings: Vec<Mapping>) -> Result<Self> {
         let path = path.as_ref();
-        let f = std::fs::File::open(path).context(format!("opening {}", path.display()))?;
-        let mut input = Device::new().ok_or_else(|| anyhow!("failed to make new Device"))?;
-        input
-            .set_fd(f)
-            .context(format!("assigning fd for {} to Device", path.display()))?;
+        let mut input = Device::new_from_path(path).context("failed to make new Device")?;
 
         input.set_name(&format!("evremap Virtual input for {}", path.display()));
 
